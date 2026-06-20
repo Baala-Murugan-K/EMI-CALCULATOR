@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loan Ledger — EMI Worksheet</title>
+<meta name="description" content="Work out the real monthly EMI, total interest, and year-by-year payoff for any loan.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F3F6EE;
+    --paper-card:#FDFEFB;
+    --rule:#D7E2D2;
+    --rule-strong:#B9CBB2;
+    --ink:#1C2A20;
+    --ink-soft:#5B6B5E;
+    --principal:#2F6F4F;
+    --interest:#B5651D;
+    --brass:#C98A3E;
+    --brass-dark:#A66E2B;
+    --radius:10px;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--rule) 1px, transparent 1px);
+    background-size: 100% 2.1rem;
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    line-height:1.5;
+    min-height:100vh;
+  }
+
+  a{color:var(--principal);}
+
+  .wrap{
+    max-width:980px;
+    margin:0 auto;
+    padding:2.5rem 1.5rem 4rem;
+  }
+
+  /* ---------- Header ---------- */
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.72rem;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    display:flex;
+    align-items:center;
+    gap:0.6rem;
+    margin-bottom:0.9rem;
+  }
+  .eyebrow::before{
+    content:"";
+    width:0.5rem;height:0.5rem;
+    border-radius:50%;
+    background:var(--brass);
+    display:inline-block;
+  }
+  h1{
+    font-family:'Spectral', serif;
+    font-weight:700;
+    font-size:clamp(1.7rem, 4vw, 2.5rem);
+    line-height:1.15;
+    margin:0 0 0.6rem;
+    color:var(--ink);
+  }
+  .sub{
+    color:var(--ink-soft);
+    font-size:1rem;
+    max-width:38rem;
+    margin:0 0 2.2rem;
+  }
+
+  /* ---------- Layout grid ---------- */
+  .grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:1.5rem;
+    align-items:start;
+  }
+  @media (max-width: 760px){
+    .grid{grid-template-columns:1fr;}
+  }
+
+  .card{
+    background:var(--paper-card);
+    border:1px solid var(--rule-strong);
+    border-radius:var(--radius);
+    padding:1.6rem 1.6rem 1.8rem;
+  }
+
+  .card h2{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.78rem;
+    text-transform:uppercase;
+    letter-spacing:0.1em;
+    color:var(--ink-soft);
+    margin:0 0 1.3rem;
+    border-bottom:1px solid var(--rule);
+    padding-bottom:0.7rem;
+  }
+
+  /* ---------- Inputs ---------- */
+  .field{margin-bottom:1.5rem;}
+  .field:last-child{margin-bottom:0;}
+  .field-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:0.5rem;
+  }
+  .field label{
+    font-size:0.92rem;
+    font-weight:500;
+    color:var(--ink);
+  }
+  .field-value{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600;
+    font-size:1rem;
+    color:var(--principal);
+    background:none;
+    border:none;
+    text-align:right;
+    width:9rem;
+    padding:0.15rem 0.3rem;
+    border-bottom:1px solid var(--rule-strong);
+  }
+  .field-value:focus{
+    outline:2px solid var(--brass);
+    outline-offset:1px;
+    border-radius:3px;
+  }
+
+  input[type="range"]{
+    width:100%;
+    height:2px;
+    background:var(--rule-strong);
+    -webkit-appearance:none;
+    appearance:none;
+    border-radius:2px;
+    margin-top:0.2rem;
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:16px;height:16px;
+    border-radius:50%;
+    background:var(--brass);
+    border:2px solid var(--paper-card);
+    box-shadow:0 0 0 1px var(--brass-dark);
+    cursor:pointer;
+    margin-top:-7px;
+  }
+  input[type="range"]::-moz-range-thumb{
+    width:16px;height:16px;
+    border-radius:50%;
+    background:var(--brass);
+    border:2px solid var(--paper-card);
+    box-shadow:0 0 0 1px var(--brass-dark);
+    cursor:pointer;
+  }
+  input[type="range"]:focus-visible{
+    outline:2px solid var(--brass);
+    outline-offset:4px;
+  }
+
+  .scale-marks{
+    display:flex;
+    justify-content:space-between;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.68rem;
+    color:var(--ink-soft);
+    margin-top:0.35rem;
+  }
+
+  /* ---------- Result card ---------- */
+  .emi-headline{
+    text-align:left;
+    margin-bottom:1.4rem;
+  }
+  .emi-headline .label{
+    font-size:0.85rem;
+    color:var(--ink-soft);
+    margin-bottom:0.2rem;
+  }
+  .emi-headline .amount{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600;
+    font-size:clamp(1.9rem, 4vw, 2.5rem);
+    color:var(--ink);
+    letter-spacing:-0.01em;
+  }
+  .emi-headline .amount sup{
+    font-size:0.85rem;
+    color:var(--ink-soft);
+    font-weight:400;
+  }
+
+  /* signature element: arc gauge */
+  .gauge-row{
+    display:flex;
+    align-items:center;
+    gap:1.4rem;
+    margin-bottom:1.4rem;
+  }
+  .gauge-legend{
+    flex:1;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.85rem;
+  }
+  .legend-line{
+    display:flex;
+    justify-content:space-between;
+    padding:0.35rem 0;
+    border-bottom:1px dashed var(--rule);
+  }
+  .legend-line:last-child{border-bottom:none;}
+  .swatch{
+    display:inline-block;
+    width:0.6rem;height:0.6rem;
+    border-radius:50%;
+    margin-right:0.5rem;
+  }
+  .swatch.principal{background:var(--principal);}
+  .swatch.interest{background:var(--interest);}
+
+  .totals{
+    margin-top:1.2rem;
+    padding-top:1rem;
+    border-top:1px solid var(--rule-strong);
+    display:flex;
+    justify-content:space-between;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.95rem;
+  }
+  .totals .t-label{color:var(--ink-soft); font-size:0.78rem; text-transform:uppercase; letter-spacing:0.06em;}
+  .totals .t-value{font-weight:600; font-size:1.1rem; margin-top:0.15rem;}
+
+  /* ---------- Amortization table ---------- */
+  .ledger-section{margin-top:1.8rem;}
+  .ledger-section h2{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.78rem;
+    text-transform:uppercase;
+    letter-spacing:0.1em;
+    color:var(--ink-soft);
+    margin:0 0 0.9rem;
+  }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.85rem;
+  }
+  thead th{
+    text-align:right;
+    font-weight:500;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    font-size:0.68rem;
+    letter-spacing:0.06em;
+    padding:0.5rem 0.6rem;
+    border-bottom:2px solid var(--ink);
+  }
+  thead th:first-child, tbody td:first-child{text-align:left;}
+  tbody td{
+    text-align:right;
+    padding:0.5rem 0.6rem;
+    border-bottom:1px solid var(--rule);
+  }
+  tbody tr:nth-child(even){background:rgba(47,111,79,0.045);}
+
+  /* ---------- Footer ---------- */
+  footer{
+    margin-top:2.5rem;
+    padding-top:1.5rem;
+    border-top:1px solid var(--rule-strong);
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:space-between;
+    align-items:center;
+    gap:1rem;
+    font-size:0.85rem;
+    color:var(--ink-soft);
+  }
+  .builder-credit{font-family:'IBM Plex Mono', monospace;}
+  .builder-credit strong{color:var(--ink);}
+  .dh-button{
+    display:inline-block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.78rem;
+    text-decoration:none;
+    color:var(--paper-card);
+    background:var(--principal);
+    padding:0.55rem 1rem;
+    border-radius:6px;
+    letter-spacing:0.02em;
+  }
+  .dh-button:hover{background:var(--brass-dark);}
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+
+    <div class="eyebrow">Loan Ledger · EMI Worksheet</div>
+    <h1>Know exactly what this loan will cost you before you sign</h1>
+    <p class="sub">Enter the numbers your bank quoted you. This works out the real monthly payment, how much of it is interest, and the year-by-year payoff — the part the EMI alone doesn't tell you.</p>
+
+    <div class="grid">
+
+      <!-- INPUT CARD -->
+      <div class="card">
+        <h2>Loan details</h2>
+
+        <div class="field">
+          <div class="field-top">
+            <label for="principal">Loan amount</label>
+            <input class="field-value" id="principalValue" type="text" inputmode="numeric" value="₹ 25,00,000">
+          </div>
+          <input type="range" id="principal" min="50000" max="20000000" step="10000" value="2500000">
+          <div class="scale-marks"><span>₹50K</span><span>₹2Cr</span></div>
+        </div>
+
+        <div class="field">
+          <div class="field-top">
+            <label for="rate">Interest rate (annual)</label>
+            <input class="field-value" id="rateValue" type="text" inputmode="decimal" value="8.5%">
+          </div>
+          <input type="range" id="rate" min="1" max="24" step="0.05" value="8.5">
+          <div class="scale-marks"><span>1%</span><span>24%</span></div>
+        </div>
+
+        <div class="field">
+          <div class="field-top">
+            <label for="tenure">Loan tenure</label>
+            <input class="field-value" id="tenureValue" type="text" inputmode="numeric" value="20 yrs">
+          </div>
+          <input type="range" id="tenure" min="1" max="30" step="1" value="20">
+          <div class="scale-marks"><span>1 yr</span><span>30 yrs</span></div>
+        </div>
+      </div>
+
+      <!-- RESULT CARD -->
+      <div class="card">
+        <h2>What you'll actually pay</h2>
+
+        <div class="emi-headline">
+          <div class="label">Monthly EMI</div>
+          <div class="amount" id="emiOut">₹ 0<sup>/month</sup></div>
+        </div>
+
+        <div class="gauge-row">
+          <svg width="116" height="116" viewBox="0 0 116 116" aria-hidden="true">
+            <circle cx="58" cy="58" r="48" fill="none" stroke="var(--rule)" stroke-width="14"/>
+            <circle id="arcPrincipal" cx="58" cy="58" r="48" fill="none" stroke="var(--principal)" stroke-width="14"
+                    stroke-dasharray="0 301.6" stroke-dashoffset="0" transform="rotate(-90 58 58)" stroke-linecap="round"/>
+            <circle id="arcInterest" cx="58" cy="58" r="48" fill="none" stroke="var(--interest)" stroke-width="14"
+                    stroke-dasharray="0 301.6" stroke-dashoffset="0" transform="rotate(-90 58 58)" stroke-linecap="round"/>
+            <text x="58" y="62" text-anchor="middle" font-family="IBM Plex Mono" font-size="13" fill="var(--ink)" id="gaugeLabel">—</text>
+          </svg>
+          <div class="gauge-legend">
+            <div class="legend-line"><span><span class="swatch principal"></span>Principal</span><span id="legendPrincipal">₹0</span></div>
+            <div class="legend-line"><span><span class="swatch interest"></span>Interest</span><span id="legendInterest">₹0</span></div>
+          </div>
+        </div>
+
+        <div class="totals">
+          <div>
+            <div class="t-label">Total payable</div>
+            <div class="t-value" id="totalOut">₹0</div>
+          </div>
+          <div style="text-align:right">
+            <div class="t-label">Interest as % of loan</div>
+            <div class="t-value" id="pctOut">0%</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- AMORTIZATION LEDGER -->
+    <div class="ledger-section">
+      <h2>Year-by-year payoff ledger</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Year</th>
+            <th>Principal paid</th>
+            <th>Interest paid</th>
+            <th>Balance remaining</th>
+          </tr>
+        </thead>
+        <tbody id="amortBody"></tbody>
+      </table>
+    </div>
+
+    <footer>
+      <a class="dh-button" href="https://digitalheroesco.com" target="_blank" rel="noopener">Built for Digital Heroes</a>
+    </footer>
+
+  </div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const fmtINR = n => '₹' + Math.round(n).toLocaleString('en-IN');
+
+  const principalRange = $('principal');
+  const rateRange = $('rate');
+  const tenureRange = $('tenure');
+
+  function calcEMI(P, annualRatePct, years){
+    const r = (annualRatePct / 12) / 100;
+    const n = years * 12;
+    if (r === 0) return P / n;
+    const pow = Math.pow(1 + r, n);
+    return (P * r * pow) / (pow - 1);
+  }
+
+  function buildAmortization(P, annualRatePct, years){
+    const r = (annualRatePct / 12) / 100;
+    const n = years * 12;
+    const emi = calcEMI(P, annualRatePct, years);
+    let balance = P;
+    const yearly = [];
+    let yPrincipal = 0, yInterest = 0;
+
+    for (let m = 1; m <= n; m++){
+      const interestPortion = balance * r;
+      let principalPortion = emi - interestPortion;
+      if (m === n) principalPortion = balance; // mop up rounding on final month
+      balance -= principalPortion;
+      if (balance < 0) balance = 0;
+
+      yPrincipal += principalPortion;
+      yInterest += interestPortion;
+
+      if (m % 12 === 0 || m === n){
+        yearly.push({
+          year: Math.ceil(m/12),
+          principal: yPrincipal,
+          interest: yInterest,
+          balance: balance
+        });
+        yPrincipal = 0; yInterest = 0;
+      }
+    }
+    return { emi, yearly };
+  }
+
+  function render(){
+    const P = parseFloat(principalRange.value);
+    const rate = parseFloat(rateRange.value);
+    const years = parseFloat(tenureRange.value);
+
+    $('principalValue').value = fmtINR(P);
+    $('rateValue').value = rate.toFixed(2).replace(/\.00$/,'') + '%';
+    $('tenureValue').value = years + (years === 1 ? ' yr' : ' yrs');
+
+    const { emi, yearly } = buildAmortization(P, rate, years);
+    const totalPayment = emi * years * 12;
+    const totalInterest = totalPayment - P;
+
+    $('emiOut').innerHTML = fmtINR(emi) + '<sup>/month</sup>';
+    $('totalOut').textContent = fmtINR(totalPayment);
+    $('pctOut').textContent = Math.round((totalInterest / P) * 100) + '%';
+    $('legendPrincipal').textContent = fmtINR(P);
+    $('legendInterest').textContent = fmtINR(totalInterest);
+
+    // Arc gauge: circumference for r=48 is 2*pi*48 = ~301.6
+    const circumference = 301.6;
+    const principalShare = P / totalPayment;
+    const interestShare = totalInterest / totalPayment;
+
+    const arcP = document.getElementById('arcPrincipal');
+    const arcI = document.getElementById('arcInterest');
+    arcP.setAttribute('stroke-dasharray', `${circumference * principalShare} ${circumference}`);
+    arcI.setAttribute('stroke-dasharray', `${circumference * interestShare} ${circumference}`);
+    arcI.setAttribute('stroke-dashoffset', `${-circumference * principalShare}`);
+    document.getElementById('gaugeLabel').textContent = Math.round(interestShare*100) + '% int';
+
+    // Amortization table
+    const body = $('amortBody');
+    body.innerHTML = '';
+    yearly.forEach(row => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${row.year}</td><td>${fmtINR(row.principal)}</td><td>${fmtINR(row.interest)}</td><td>${fmtINR(row.balance)}</td>`;
+      body.appendChild(tr);
+    });
+  }
+
+  [principalRange, rateRange, tenureRange].forEach(el => el.addEventListener('input', render));
+
+  // Allow typing directly into the value fields
+  function parseTypedNumber(str){
+    return parseFloat(str.replace(/[^0-9.]/g, '')) || 0;
+  }
+  $('principalValue').addEventListener('change', e => {
+    let v = parseTypedNumber(e.target.value);
+    v = Math.min(Math.max(v, principalRange.min), principalRange.max);
+    principalRange.value = v;
+    render();
+  });
+  $('rateValue').addEventListener('change', e => {
+    let v = parseTypedNumber(e.target.value);
+    v = Math.min(Math.max(v, rateRange.min), rateRange.max);
+    rateRange.value = v;
+    render();
+  });
+  $('tenureValue').addEventListener('change', e => {
+    let v = parseTypedNumber(e.target.value);
+    v = Math.min(Math.max(v, tenureRange.min), tenureRange.max);
+    tenureRange.value = v;
+    render();
+  });
+
+  render();
+</script>
+</body>
+</html>
